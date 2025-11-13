@@ -1,0 +1,197 @@
+# Especificación OpenAPI para la API de FitTrack
+# Versión: 1.0.0
+
+openapi: 3.0.0
+info:
+  title: FitTrack API
+  description: API RESTful para la aplicación de seguimiento deportivo FitTrack. Define todos los recursos y operaciones para gestionar usuarios, entrenamientos y la comunidad.
+  version: "1.0.0"
+
+servers:
+  - url: https://api.fittrack.com/api/v1
+    description: Servidor de Producción
+  - url: http://localhost:3000/api/v1
+    description: Servidor de Desarrollo Local
+
+# --- COMPONENTS ---
+components:
+  # --- Security Schemes ---
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "Introduce el token JWT con el prefijo 'Bearer '. Ejemplo: 'Bearer eyJhbGciOiJI...'."
+
+  # --- Schemas (DTOs & Models) ---
+  schemas:
+    Usuario:
+      type: object
+      properties:
+        id: { type: integer, example: 42 }
+        nombre: { type: string, example: "Ana García" }
+        email: { type: string, format: email, example: "ana.garcia@example.com" }
+        fechaNacimiento: { type: string, format: date, example: "1995-05-15" }
+        nivelExperiencia: { type: string, enum: [Novato, Intermedio, Avanzado], example: "Intermedio" }
+        fechaRegistro: { type: string, format: date-time }
+    
+    UsuarioRegistro:
+      type: object
+      required: [nombre, email, password]
+      properties:
+        nombre: { type: string, example: "Carlos Pérez" }
+        email: { type: string, format: email, example: "carlos.perez@example.com" }
+        password: { type: string, format: password, example: "supersecret123" }
+
+    UsuarioLogin:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+
+    SesionNueva:
+      type: object
+      required: [fecha, ejerciciosRealizados]
+      properties:
+        fecha: { type: string, format: date-time }
+        notas: { type: string }
+        ejerciciosRealizados:
+          type: array
+          items:
+            type: object
+            required: [ejercicioId, sets]
+            properties:
+              ejercicioId: { type: integer }
+              sets:
+                type: array
+                items:
+                  type: object
+                  required: [repeticiones, peso]
+                  properties:
+                    repeticiones: { type: integer }
+                    peso: { type: number }
+
+    PublicacionNueva:
+      type: object
+      required: [texto]
+      properties:
+        texto: { type: string }
+        hashtags: { type: array, items: { type: string } }
+
+    AuthResponse:
+      type: object
+      properties:
+        token: { type: string, description: "Token JWT para autenticar peticiones." }
+    
+    Error:
+      type: object
+      properties:
+        code: { type: string, example: "VALIDATION_ERROR" }
+        message: { type: string, example: "Los datos proporcionados son inválidos." }
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string, example: "email" }
+              issue: { type: string, example: "El formato del email es incorrecto." }
+
+# --- SECURITY ---
+security:
+  - bearerAuth: []
+
+# --- PATHS ---
+paths:
+  # --- Auth ---
+  /auth/register:
+    post:
+      summary: Registro de un nuevo usuario
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UsuarioRegistro' }
+      responses:
+        '201': { description: "Usuario creado con éxito." }
+        '400': { description: "Error de validación.", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /auth/login:
+    post:
+      summary: Inicio de sesión de un usuario
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UsuarioLogin' }
+      responses:
+        '200': { description: "Autenticación exitosa.", content: { application/json: { schema: { $ref: '#/components/schemas/AuthResponse' } } } }
+        '401': { description: "Credenciales incorrectas.", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  # --- Usuarios ---
+  /usuarios/me:
+    get:
+      summary: Obtener el perfil del usuario autenticado
+      tags: [Usuarios]
+      responses:
+        '200': { description: "Perfil del usuario.", content: { application/json: { schema: { $ref: '#/components/schemas/Usuario' } } } }
+        '401': { description: "No autorizado." }
+    patch:
+      summary: Actualizar el perfil del usuario autenticado
+      tags: [Usuarios]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nombre: { type: string }
+                nivelExperiencia: { type: string }
+      responses:
+        '200': { description: "Perfil actualizado.", content: { application/json: { schema: { $ref: '#/components/schemas/Usuario' } } } }
+        '400': { description: "Error de validación." }
+
+  # --- Sesiones ---
+  /sesiones:
+    post:
+      summary: Registrar una nueva sesión de entrenamiento
+      tags: [Sesiones]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SesionNueva' }
+      responses:
+        '201': { description: "Sesión creada con éxito." }
+        '400': { description: "Error de validación." }
+    get:
+      summary: Obtener el historial de sesiones del usuario
+      tags: [Sesiones]
+      parameters:
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 10 } }
+      responses:
+        '200': { description: "Lista paginada de sesiones." }
+          
+  # --- Publicaciones ---
+  /publicaciones:
+    post:
+      summary: Crear una nueva publicación en Fitgram
+      tags: [Publicaciones]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PublicacionNueva' }
+      responses:
+        '201': { description: "Publicación creada con éxito." }
+    get:
+      summary: Obtener el feed principal de publicaciones
+      tags: [Publicaciones]
+      security: []
+      responses:
+        '200': { description: "Lista paginada de publicaciones." }
