@@ -1,6 +1,6 @@
-const User = require('../models/mysql/User');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
+import User from '../models/mysql/User.js';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
 const register = async (userData) => {
     // 1. Encriptar la contraseña (hasheo)
@@ -32,4 +32,4 @@ const login = async (email, password) => {
     return { user, token };
 };
 
-module.exports = { register, login };
+export { register, login };

@@ -1,6 +1,6 @@
-const Exercise = require('../models/mysql/Exercise');
+import Exercise from '../models/mysql/Exercise.js';
 
-exports.getAllExercises = async (req, res) => {
+export const getAllExercises = async (req, res) => {
     try {
         const ejercicios = await Exercise.findAll();
         res.status(200).json(ejercicios);

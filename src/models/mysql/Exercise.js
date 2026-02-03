@@ -1,5 +1,5 @@
-const { DataTypes } = require('sequelize');
-const { sequelize } = require('../../config/mysql');
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../../config/mysql.js';
 
 const Exercise = sequelize.define('Exercise', {
     id: {
@@ -26,4 +26,4 @@ const Exercise = sequelize.define('Exercise', {
     timestamps: false // No necesitamos createdAt para el catálogo maestro
 });
 
-module.exports = Exercise;
+export default Exercise;

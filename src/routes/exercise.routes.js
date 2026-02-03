@@ -1,7 +1,8 @@
-const express = require('express');
+import express from 'express';
+import { getAllExercises } from '../controllers/exercise.controller.js';
+
 const router = express.Router();
-const exerciseController = require('../controllers/exercise.controller');
 
-router.get('/', exerciseController.getAllExercises);
+router.get('/', getAllExercises);
 
-module.exports = router;
+export default router;

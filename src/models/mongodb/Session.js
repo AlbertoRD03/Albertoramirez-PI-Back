@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const setSchema = new mongoose.Schema({
     reps: { type: Number, required: true },
@@ -23,4 +23,4 @@ const sessionSchema = new mongoose.Schema({
     timestamps: true // Crea createdAt y updatedAt
 });
 
-module.exports = mongoose.model('Session', sessionSchema);
+export default mongoose.model('Session', sessionSchema);

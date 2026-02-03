@@ -1,6 +1,6 @@
-const sessionService = require('../services/session.service');
+import * as sessionService from '../services/session.service.js';
 
-exports.registrarSesion = async (req, res) => {
+export const registrarSesion = async (req, res) => {
     try {
         // El id viene del token verificado en el middleware
         const usuario_id = req.user.id;
@@ -25,7 +25,7 @@ exports.registrarSesion = async (req, res) => {
     }
 };
 
-exports.obtenerHistorial = async (req, res) => {
+export const obtenerHistorial = async (req, res) => {
     try {
         const historial = await sessionService.getSessionsByUser(req.user.id);
         res.status(200).json(historial);
@@ -34,7 +34,7 @@ exports.obtenerHistorial = async (req, res) => {
     }
 };
 
-exports.eliminarSesion = async (req, res) => {
+export const eliminarSesion = async (req, res) => {
     try {
         const resultado = await sessionService.deleteSession(req.params.id, req.user.id);
         if (!resultado) return res.status(404).json({ error: "Sesión no encontrada" });
@@ -45,12 +45,33 @@ exports.eliminarSesion = async (req, res) => {
     }
 };
 
-exports.obtenerProgresoEjercicio = async (req, res) => {
+export const obtenerProgresoEjercicio = async (req, res) => {
     try {
         const { exerciseId } = req.params;
         const progreso = await sessionService.getExerciseHistory(req.user.id, parseInt(exerciseId));
         res.status(200).json(progreso);
     } catch (error) {
         res.status(500).json({ error: "Error al obtener el progreso del ejercicio" });
+    }
+};
+
+export const actualizarSesion = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const usuario_id = req.user.id;
+        const datosActualizados = req.body;
+
+        const sesionEditada = await sessionService.updateSession(id, usuario_id, datosActualizados);
+
+        if (!sesionEditada) {
+            return res.status(404).json({ error: "Sesión no encontrada o no autorizada" });
+        }
+
+        res.status(200).json({
+            message: "Sesión actualizada correctamente ✅",
+            sesion: sesionEditada
+        });
+    } catch (error) {
+        res.status(500).json({ error: "Error al actualizar la sesión" });
     }
 };

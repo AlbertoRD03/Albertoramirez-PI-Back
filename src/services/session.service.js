@@ -1,4 +1,4 @@
-const Session = require('../models/mongodb/Session');
+import Session from '../models/mongodb/Session.js';
 
 const createSession = async (sessionData) => {
     //instancia del modelo Session con los datos recibidos
@@ -26,5 +26,19 @@ const getExerciseHistory = async (userId, exerciseId) => {
     .sort({ fecha: -1 });
 };
 
+const updateSession = async (sessionId, userId, updateData) => {
+    // Buscamos por ID de sesión Y por ID de usuario para asegurar que nadie edite sesiones ajenas
+    return await Session.findOneAndUpdate(
+        { _id: sessionId, usuario_id: userId },
+        { $set: updateData }, //$set para actualizar solo los campos proporcionados
+        { new: true } // Esto devuelve el documento ya actualizado
+    );
+}
 
-module.exports = { createSession, getSessionsByUser, deleteSession, getExerciseHistory };
+export {
+    createSession,
+    getSessionsByUser,
+    deleteSession,
+    getExerciseHistory,
+    updateSession
+};

@@ -1,18 +1,18 @@
-const express = require('express');
-const cors = require('cors');
-require('dotenv').config();
+import express from 'express';
+import cors from 'cors';
+import 'dotenv/config';
 
 // Importar conexiones
-const { sequelize, connectMySQL } = require('./config/mysql');
-const connectMongoDB = require('./config/mongodb');
+import { sequelize, connectMySQL } from './config/mysql.js';
+import connectMongoDB from './config/mongodb.js';
 
 // Importar Modelos de MySQL para que Sequelize los reconozca
-const User = require('./models/mysql/User');
-const authRoutes = require('./routes/auth.routes');
-const userRoutes = require('./routes/user.routes');
-const Exercise = require('./models/mysql/Exercise');
-const exerciseRoutes = require('./routes/exercise.routes');
-const sessionRoutes = require('./routes/session.routes');
+import './models/mysql/User.js';
+import authRoutes from './routes/auth.routes.js';
+import userRoutes from './routes/user.routes.js';
+import './models/mysql/Exercise.js';
+import exerciseRoutes from './routes/exercise.routes.js';
+import sessionRoutes from './routes/session.routes.js';
 
 const app = express();
 

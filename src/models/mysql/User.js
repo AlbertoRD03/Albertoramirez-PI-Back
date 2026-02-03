@@ -1,5 +1,5 @@
-const { DataTypes } = require('sequelize');
-const { sequelize } = require('../../config/mysql');
+import { DataTypes } from 'sequelize';
+import { sequelize } from '../../config/mysql.js';
 
 const User = sequelize.define('User', {
     id: {
@@ -57,4 +57,4 @@ const User = sequelize.define('User', {
     timestamps: true // Crea automáticamente createdAt y updatedAt
 });
 
-module.exports = User;
+export default User;

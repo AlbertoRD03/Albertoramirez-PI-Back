@@ -1,18 +1,27 @@
-const express = require('express');
+import express from 'express';
+import {
+    registrarSesion,
+    obtenerHistorial,
+    eliminarSesion,
+    obtenerProgresoEjercicio,
+    actualizarSesion
+} from '../controllers/session.controller.js';
+import verifyToken from '../middlewares/auth.middleware.js';
+
 const router = express.Router();
-const sessionController = require('../controllers/session.controller');
-const verifyToken = require('../middlewares/auth.middleware');
 
 // Registrar una nueva sesión
-router.post('/', verifyToken, sessionController.registrarSesion);
+router.post('/', verifyToken, registrarSesion);
 
 // Obtener todo el historial del usuario
-router.get('/historial', verifyToken, sessionController.obtenerHistorial);
+router.get('/historial', verifyToken, obtenerHistorial);
 
 // Eliminar una sesión específica
-router.delete('/:id', verifyToken, sessionController.eliminarSesion);
+router.delete('/:id', verifyToken, eliminarSesion);
 
 // Obtener el historial de un ejercicio concreto (para gráficas o consulta)
-router.get('/ejercicio/:exerciseId', verifyToken, sessionController.obtenerProgresoEjercicio);
+router.get('/ejercicio/:exerciseId', verifyToken, obtenerProgresoEjercicio);
 
-module.exports = router;
+// Añade esta ruta (usa el método PUT)
+router.put('/:id', verifyToken, actualizarSesion);
+export default router;

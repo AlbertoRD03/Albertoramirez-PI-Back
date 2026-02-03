@@ -1,9 +1,12 @@
-const express = require('express');
-const router = express.Router();
-const userController = require('../controllers/user.controller');
-const verifyToken = require('../middlewares/auth.middleware');
+import { Router } from 'express';
+import * as userController from '../controllers/user.controller.js';
+import verifyToken from '../middlewares/auth.middleware.js';
 
-// Ruta protegida: solo accesible si envías un token válido
-router.put('/onboarding', verifyToken, userController.completeOnboarding);
+const router = Router();
 
-module.exports = router;
+// Todas las rutas de perfil requieren estar logueado
+router.get('/profile', verifyToken, userController.getProfile);
+router.put('/profile', verifyToken, userController.updateProfile);
+router.delete('/profile', verifyToken, userController.deleteAccount);
+
+export default router;
