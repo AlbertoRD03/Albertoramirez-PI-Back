@@ -12,6 +12,7 @@ const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
 const Exercise = require('./models/mysql/Exercise');
 const exerciseRoutes = require('./routes/exercise.routes');
+const sessionRoutes = require('./routes/session.routes');
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/exercises', exerciseRoutes);
+app.use('/api/sessions', sessionRoutes);
 
 
 
