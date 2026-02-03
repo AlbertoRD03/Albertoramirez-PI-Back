@@ -13,6 +13,7 @@ import userRoutes from './routes/user.routes.js';
 import './models/mysql/Exercise.js';
 import exerciseRoutes from './routes/exercise.routes.js';
 import sessionRoutes from './routes/session.routes.js';
+import dashboardRoutes from './routes/dashboard.routes.js';
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/exercises', exerciseRoutes);
 app.use('/api/sessions', sessionRoutes);
+app.use('/api/dashboard', dashboardRoutes)
 
 
 
