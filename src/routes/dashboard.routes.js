@@ -4,6 +4,6 @@ import verifyToken from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
-router.get('/weekly-workload', verifyToken, dashboardController.getStats);
+router.get('/stats', verifyToken, dashboardController.getFullDashboard);
 
 export default router;
