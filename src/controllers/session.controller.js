@@ -33,3 +33,24 @@ exports.obtenerHistorial = async (req, res) => {
         res.status(500).json({ error: "Error al obtener el historial" });
     }
 };
+
+exports.eliminarSesion = async (req, res) => {
+    try {
+        const resultado = await sessionService.deleteSession(req.params.id, req.user.id);
+        if (!resultado) return res.status(404).json({ error: "Sesión no encontrada" });
+        
+        res.status(200).json({ message: "Sesión eliminada correctamente" });
+    } catch (error) {
+        res.status(500).json({ error: "Error al eliminar la sesión" });
+    }
+};
+
+exports.obtenerProgresoEjercicio = async (req, res) => {
+    try {
+        const { exerciseId } = req.params;
+        const progreso = await sessionService.getExerciseHistory(req.user.id, parseInt(exerciseId));
+        res.status(200).json(progreso);
+    } catch (error) {
+        res.status(500).json({ error: "Error al obtener el progreso del ejercicio" });
+    }
+};
