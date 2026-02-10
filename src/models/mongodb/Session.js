@@ -1,26 +1,26 @@
 import mongoose from 'mongoose';
 
 const setSchema = new mongoose.Schema({
-    reps: { type: Number, required: true },
-    peso: { type: Number, required: true }, // en kg
-    rpe: { type: Number, min: 1, max: 10 }  // Esfuerzo percibido
+  reps: { type: Number, required: true },
+  peso: { type: Number, required: true },
+  rpe: { type: Number, min: 1, max: 10 }
 });
 
 const ejercicioRealizadoSchema = new mongoose.Schema({
-    ejercicio_id: { type: Number, required: true }, // Referencia al ID de MySQL
-    nombre_ejercicio: { type: String, required: true }, // Denormalizado para lectura rápida
-    sets: [setSchema] // Array de series
+  ejercicio_id: { type: Number, required: true },
+  nombre_ejercicio: { type: String, required: true },
+  sets: [setSchema]
 });
 
 const sessionSchema = new mongoose.Schema({
-    usuario_id: { type: Number, required: true, index: true }, // Referencia al ID de MySQL
-    fecha: { type: Date, default: Date.now },
-    tipo_rutina: { type: String, required: true }, // Ej: "Pecho y Tríceps"
-    ejercicios_realizados: [ejercicioRealizadoSchema],
-    notas: { type: String },
-    duracion_minutos: { type: Number }
+  usuario_id: { type: Number, required: true, index: true },
+  fecha: { type: Date, default: Date.now },
+  tipo_rutina: { type: String, required: true },
+  ejercicios_realizados: [ejercicioRealizadoSchema],
+  notas: { type: String },
+  duracion_minutos: { type: Number }
 }, {
-    timestamps: true // Crea createdAt y updatedAt
+  timestamps: true
 });
 
 export default mongoose.model('Session', sessionSchema);
