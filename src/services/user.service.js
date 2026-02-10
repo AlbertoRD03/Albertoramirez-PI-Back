@@ -1,30 +1,33 @@
 import User from '../models/mysql/User.js';
 import Session from '../models/mongodb/Session.js';
 
-// Obtener datos del perfil
-export const getUserById = async (id) => {
-    return await User.findByPk(id, {
-        attributes: { exclude: ['password'] } // Nunca devolvemos la contraseña
-    });
+export const getUserProfile = async (userId) => {
+  return User.findByPk(userId, {
+    attributes: { exclude: ['password'] }
+  });
 };
 
-// Actualizar datos físicos
-export const updateUser = async (id, updateData) => {
-    const user = await User.findByPk(id);
-    if (!user) return null;
-    return await user.update(updateData);
+export const updateUserProfile = async (userId, updateData) => {
+  const [updatedRows] = await User.update(updateData, {
+    where: { id: userId }
+  });
+
+  if (!updatedRows) return null;
+
+  return User.findByPk(userId, {
+    attributes: { exclude: ['password'] }
+  });
 };
 
-// Borrado Híbrido Total
-export const deleteFullUser = async (id) => {
-    // 1. Borrar de MySQL
-    const deletedInMySQL = await User.destroy({ where: { id } });
-    
-    // 2. Borrar todas sus sesiones en MongoDB
-    const deletedInMongo = await Session.deleteMany({ usuario_id: id });
-    
-    return {
-        mysql: deletedInMySQL,
-        mongodb: deletedInMongo.deletedCount
-    };
+export const deleteUserFull = async (userId) => {
+  const user = await User.findByPk(userId);
+  if (!user) return null;
+
+  const deletedUser = await User.destroy({ where: { id: userId } });
+  const deletedSessions = await Session.deleteMany({ usuario_id: userId });
+
+  return {
+    deletedUser,
+    deletedSessions: deletedSessions?.deletedCount ?? 0
+  };
 };

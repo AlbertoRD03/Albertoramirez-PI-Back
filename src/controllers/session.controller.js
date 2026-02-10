@@ -1,77 +1,119 @@
-import * as sessionService from '../services/session.service.js';
+import {
+  createSession,
+  getSessionsByUser,
+  updateSession,
+  deleteSession,
+  getExerciseHistory
+} from '../services/session.service.js';
+import { checkAndUnlockAchievements } from '../services/gamificacion.service.js';
 
 export const registrarSesion = async (req, res) => {
-    try {
-        // El id viene del token verificado en el middleware
-        const usuario_id = req.user.id;
-        
-        // Extraemos los datos del entrenamiento
-        const { tipo_rutina, ejercicios_realizados, notas, duracion_minutos } = req.body;
-
-        const sesionGuardada = await sessionService.createSession({
-            usuario_id,
-            tipo_rutina,
-            ejercicios_realizados,
-            notas,
-            duracion_minutos
-        });
-
-        res.status(201).json({
-            message: "¡Entrenamiento guardado con éxito!",
-            sesion: sesionGuardada
-        });
-    } catch (error) {
-        res.status(500).json({ error: "Error al registrar la sesión de entrenamiento" });
+  try {
+    const userId = Number(req.user?.id);
+    if (!Number.isFinite(userId)) {
+      return res.status(400).json({ error: 'Usuario inválido' });
     }
+
+    const {
+      tipo_rutina,
+      ejercicios_realizados,
+      notas,
+      duracion_minutos,
+      fecha
+    } = req.body;
+
+    if (!tipo_rutina) {
+      return res.status(400).json({ error: 'Datos de sesión inválidos' });
+    }
+
+    const session = await createSession({
+      usuario_id: userId,
+      fecha: fecha ? new Date(fecha) : new Date(),
+      tipo_rutina,
+      ejercicios_realizados,
+      notas,
+      duracion_minutos
+    });
+
+    const nuevosLogros = await checkAndUnlockAchievements(userId);
+
+    return res.status(201).json({
+      message: 'Sesión registrada con éxito',
+      session,
+      nuevosLogros
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al registrar la sesión' });
+  }
 };
 
 export const obtenerHistorial = async (req, res) => {
-    try {
-        const historial = await sessionService.getSessionsByUser(req.user.id);
-        res.status(200).json(historial);
-    } catch (error) {
-        res.status(500).json({ error: "Error al obtener el historial" });
+  try {
+    const userId = Number(req.user?.id);
+    if (!Number.isFinite(userId)) {
+      return res.status(400).json({ error: 'Usuario inválido' });
     }
-};
 
-export const eliminarSesion = async (req, res) => {
-    try {
-        const resultado = await sessionService.deleteSession(req.params.id, req.user.id);
-        if (!resultado) return res.status(404).json({ error: "Sesión no encontrada" });
-        
-        res.status(200).json({ message: "Sesión eliminada correctamente" });
-    } catch (error) {
-        res.status(500).json({ error: "Error al eliminar la sesión" });
-    }
-};
-
-export const obtenerProgresoEjercicio = async (req, res) => {
-    try {
-        const { exerciseId } = req.params;
-        const progreso = await sessionService.getExerciseHistory(req.user.id, parseInt(exerciseId));
-        res.status(200).json(progreso);
-    } catch (error) {
-        res.status(500).json({ error: "Error al obtener el progreso del ejercicio" });
-    }
+    const sessions = await getSessionsByUser(userId);
+    return res.status(200).json({ items: sessions });
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al obtener historial' });
+  }
 };
 
 export const actualizarSesion = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const usuario_id = req.user.id;
-        const datosActualizados = req.body;
-
-        const sesionEditada = await sessionService.updateSession(id, usuario_id, datosActualizados);
-
-        if (!sesionEditada) {
-            return res.status(404).json({ error: "Sesión no encontrada o no autorizada" });
-        }
-
-        res.status(200).json({
-            message: "Sesión actualizada correctamente ✅",
-            sesion: sesionEditada
-        });
-    } catch (error) {
-        res.status(500).json({ error: "Error al actualizar la sesión" });
+  try {
+    const userId = Number(req.user?.id);
+    if (!Number.isFinite(userId)) {
+      return res.status(400).json({ error: 'Usuario inválido' });
     }
+
+    const { id } = req.params;
+    const updated = await updateSession(id, userId, req.body);
+
+    if (!updated) {
+      return res.status(404).json({ error: 'Sesión no encontrada' });
+    }
+
+    return res.status(200).json({ message: 'Sesión actualizada', session: updated });
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al actualizar la sesión' });
+  }
+};
+
+export const eliminarSesion = async (req, res) => {
+  try {
+    const userId = Number(req.user?.id);
+    if (!Number.isFinite(userId)) {
+      return res.status(400).json({ error: 'Usuario inválido' });
+    }
+
+    const { id } = req.params;
+    const deleted = await deleteSession(id, userId);
+
+    if (!deleted) {
+      return res.status(404).json({ error: 'Sesión no encontrada' });
+    }
+
+    return res.status(200).json({ message: 'Sesión eliminada' });
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al eliminar la sesión' });
+  }
+};
+
+export const obtenerProgresoEjercicio = async (req, res) => {
+  try {
+    const userId = Number(req.user?.id);
+    const exerciseId = Number(req.params.exerciseId);
+
+    if (!Number.isFinite(userId) || !Number.isFinite(exerciseId)) {
+      return res.status(400).json({ error: 'Parámetros inválidos' });
+    }
+
+    const history = await getExerciseHistory(userId, exerciseId);
+
+    return res.status(200).json({ items: history });
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al obtener progreso del ejercicio' });
+  }
 };

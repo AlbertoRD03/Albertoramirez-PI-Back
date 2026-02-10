@@ -15,13 +15,9 @@ const Achievement = sequelize.define('Achievement', {
     type: DataTypes.STRING,
     allowNull: false
   },
-  icono: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
   categoria: {
     type: DataTypes.STRING,
-    allowNull: true
+    allowNull: false
   }
 }, {
   tableName: 'logros',

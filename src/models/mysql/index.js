@@ -2,6 +2,7 @@ import User from './User.js';
 import Achievement from './Achievement.js';
 import UserAchievement from './UserAchievement.js';
 import PersonalGoal from './PersonalGoal.js';
+import Exercise from './Exercise.js';
 
 User.belongsToMany(Achievement, {
   through: UserAchievement,
@@ -28,5 +29,6 @@ export {
   User,
   Achievement,
   UserAchievement,
-  PersonalGoal
+  PersonalGoal,
+  Exercise
 };

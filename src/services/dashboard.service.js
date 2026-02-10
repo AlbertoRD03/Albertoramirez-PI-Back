@@ -1,108 +1,133 @@
 import Session from '../models/mongodb/Session.js';
 
-//Resuemn semanal de carga de entrenamiento
-export const getWeeklyWorkload = async (userId) => {
-    const sieteDiasAtras = new Date();
-    sieteDiasAtras.setDate(sieteDiasAtras.getDate() - 7);
+const roundToTwo = (value) => Number(value.toFixed(2));
 
-    return await Session.aggregate([
-        { 
-            $match: { 
-                usuario_id: userId, 
-                fecha: { $gte: sieteDiasAtras } 
-            } 
-        },
-        { 
-            $unwind: "$ejercicios_realizados" 
-        },
-        { 
-            $unwind: "$ejercicios_realizados.sets" 
-        },
-        {
-            $group: {
-                _id: { $dateToString: { format: "%Y-%m-%d", date: "$fecha" } },
-                volumenTotal: { 
-                    $sum: { $multiply: ["$ejercicios_realizados.sets.peso", "$ejercicios_realizados.sets.reps"] } 
-                }
-            }
-        },
-        { $sort: { "_id": 1 } }
-    ]);
-};
+const calculateSessionIntensity = (session) => {
+  if (!session?.ejercicios_realizados?.length) {
+    return { totalVolume: 0, totalReps: 0, intensity: 0 };
+  }
 
-//Reparto por grupos musculares (o ejercicios)
-export const getMuscleDistribution = async (userId) => {
-    return await Session.aggregate([
-        { $match: { usuario_id: userId } },
-        { $unwind: "$ejercicios_realizados" },
-        {
-            $group: {
-                _id: "$ejercicios_realizados.nombre_ejercicio", // O .grupo_muscular si lo guardas
-                count: { $sum: 1 }
-            }
-        },
-        { $sort: { count: -1 } }
-    ]);
-};
+  let totalVolume = 0;
+  let totalReps = 0;
 
-//Totales históricos (Kilos totales y sesiones totales)
-export const getLifetimeStats = async (userId) => {
-    // 1. Obtener la PRIMERA sesión (la más antigua)
-    const primeraSesion = await Session.find({ usuario_id: userId })
-        .sort({ fecha: 1 })
-        .limit(1);
-
-    // 2. Obtener la ÚLTIMA sesión (la más reciente)
-    const ultimaSesion = await Session.find({ usuario_id: userId })
-        .sort({ fecha: -1 })
-        .limit(1);
-
-    // Función auxiliar para calcular intensidad media (kg/rep) de una sesión
-    const calcularIntensidad = (sesion) => {
-        if (!sesion || sesion.length === 0) return 0;
-        let volumenTotal = 0;
-        let repsTotales = 0;
-
-        sesion[0].ejercicios_realizados.forEach(ej => {
-            ej.sets.forEach(set => {
-                volumenTotal += (set.peso * set.reps);
-                repsTotales += set.reps;
-            });
-        });
-
-        return repsTotales > 0 ? (volumenTotal / repsTotales) : 0;
-    };
-
-    const intensidadInicial = calcularIntensidad(primeraSesion);
-    const intensidadActual = calcularIntensidad(ultimaSesion);
-
-    // 3. Calcular Porcentaje de Mejora
-    let porcentajeMejora = 0;
-    if (intensidadInicial > 0) {
-        porcentajeMejora = ((intensidadActual - intensidadInicial) / intensidadInicial) * 100;
+  for (const ejercicio of session.ejercicios_realizados) {
+    if (!ejercicio?.sets?.length) continue;
+    for (const set of ejercicio.sets) {
+      const reps = Number(set.reps || 0);
+      const peso = Number(set.peso || 0);
+      totalReps += reps;
+      totalVolume += reps * peso;
     }
+  }
 
-    // 4. Estadísticas globales (Totales)
-    const totalSesiones = await Session.countDocuments({ usuario_id: userId });
-    
-    // Suma de kilos totales de toda la vida (usando agregación rápida)
-    const kilosVida = await Session.aggregate([
-        { $match: { usuario_id: userId } },
-        { $unwind: "$ejercicios_realizados" },
-        { $unwind: "$ejercicios_realizados.sets" },
-        { $group: { _id: null, total: { $sum: { $multiply: ["$ejercicios_realizados.sets.peso", "$ejercicios_realizados.sets.reps"] } } } }
-    ]);
+  const intensity = totalReps > 0 ? totalVolume / totalReps : 0;
 
-    return {
-        progreso: {
-            porcentajeMejora: parseFloat(porcentajeMejora.toFixed(2)),
-            mensaje: porcentajeMejora >= 0 ? "Mejora de fuerza detectada" : "En fase de mantenimiento",
-            intensidadInicial: parseFloat(intensidadInicial.toFixed(2)),
-            intensidadActual: parseFloat(intensidadActual.toFixed(2))
+  return { totalVolume, totalReps, intensity };
+};
+
+export const getWeeklyWorkload = async (userId) => {
+  const fromDate = new Date();
+  fromDate.setDate(fromDate.getDate() - 6);
+  fromDate.setHours(0, 0, 0, 0);
+
+  const workload = await Session.aggregate([
+    { $match: { usuario_id: userId, fecha: { $gte: fromDate } } },
+    { $unwind: '$ejercicios_realizados' },
+    { $unwind: '$ejercicios_realizados.sets' },
+    {
+      $group: {
+        _id: {
+          $dateToString: { format: '%Y-%m-%d', date: '$fecha' }
         },
-        totales: {
-            sesionesCompletadas: totalSesiones,
-            kilosLevantadosAcumulados: kilosVida[0]?.total || 0
+        volumen_total: {
+          $sum: {
+            $multiply: [
+              { $toDouble: '$ejercicios_realizados.sets.peso' },
+              { $toDouble: '$ejercicios_realizados.sets.reps' }
+            ]
+          }
         }
+      }
+    },
+    { $sort: { _id: 1 } }
+  ]);
+
+  return workload.map((item) => ({
+    fecha: item._id,
+    volumen_total: roundToTwo(item.volumen_total || 0)
+  }));
+};
+
+export const getMuscleDistribution = async (userId) => {
+  const distribution = await Session.aggregate([
+    { $match: { usuario_id: userId } },
+    { $unwind: '$ejercicios_realizados' },
+    {
+      $group: {
+        _id: '$ejercicios_realizados.nombre_ejercicio',
+        total: { $sum: 1 }
+      }
+    },
+    { $sort: { total: -1 } }
+  ]);
+
+  return distribution.map((item) => ({
+    ejercicio: item._id,
+    total: item.total
+  }));
+};
+
+export const getLifetimeStats = async (userId) => {
+  const [firstSession, lastSession] = await Promise.all([
+    Session.findOne({ usuario_id: userId }).sort({ fecha: 1 }).lean(),
+    Session.findOne({ usuario_id: userId }).sort({ fecha: -1 }).lean()
+  ]);
+
+  if (!firstSession || !lastSession) {
+    return {
+      firstSessionDate: null,
+      lastSessionDate: null,
+      firstIntensity: 0,
+      lastIntensity: 0,
+      improvementPercent: 0,
+      totalVolume: 0
     };
+  }
+
+  const firstStats = calculateSessionIntensity(firstSession);
+  const lastStats = calculateSessionIntensity(lastSession);
+
+  const improvementPercent = firstStats.intensity > 0
+    ? ((lastStats.intensity - firstStats.intensity) / firstStats.intensity) * 100
+    : 0;
+
+  const totalVolumeAgg = await Session.aggregate([
+    { $match: { usuario_id: userId } },
+    { $unwind: '$ejercicios_realizados' },
+    { $unwind: '$ejercicios_realizados.sets' },
+    {
+      $group: {
+        _id: null,
+        total: {
+          $sum: {
+            $multiply: [
+              { $toDouble: '$ejercicios_realizados.sets.peso' },
+              { $toDouble: '$ejercicios_realizados.sets.reps' }
+            ]
+          }
+        }
+      }
+    }
+  ]);
+
+  const totalVolume = totalVolumeAgg[0]?.total || 0;
+
+  return {
+    firstSessionDate: firstSession.fecha,
+    lastSessionDate: lastSession.fecha,
+    firstIntensity: roundToTwo(firstStats.intensity),
+    lastIntensity: roundToTwo(lastStats.intensity),
+    improvementPercent: roundToTwo(improvementPercent),
+    totalVolume: roundToTwo(totalVolume)
+  };
 };
